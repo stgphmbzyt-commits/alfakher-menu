@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الفاخر | قائمة الطعام</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Tahoma, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f7f3ed;
+      color: #222;
+    }
+
+    header {
+      background: #171717;
+      color: white;
+      padding: 28px 18px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: #d8c7a2;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 20px 15px 110px;
+    }
+
+    .categories {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 5px 0 15px;
+      scrollbar-width: none;
+    }
+
+    .categories::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-btn {
+      border: none;
+      background: white;
+      color: #333;
+      padding: 11px 18px;
+      border-radius: 30px;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+      font-size: 15px;
+    }
+
+    .category-btn.active {
+      background: #171717;
+      color: white;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .item {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(0,0,0,.08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .item-image {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      background: #e8e2d9;
+    }
+
+    .no-image {
+      height: 190px;
+      background: linear-gradient(135deg, #ded6ca, #f4eee6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #777;
+      font-size: 45px;
+    }
+
+    .item-body {
+      padding: 15px;
+    }
+
+    .item-name {
+      font-size: 19px;
+      font-weight: bold;
+      margin-bottom: 7px;
+    }
+
+    .item-description {
+      color: #777;
+      font-size: 14px;
+      min-height: 20px;
+      margin-bottom: 12px;
+    }
+
+    .item-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .price {
+      font-weight: bold;
+      color: #8b6b35;
+      font-size: 17px;
+    }
+
+    .add-btn {
+      border: none;
+      background: #171717;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .cart-button {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      z-index: 30;
+      border: none;
+      background: #171717;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 50px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.25);
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .cart-count {
+      background: #c59b5a;
+      color: white;
+      border-radius: 50%;
+      min-width: 23px;
+      height: 23px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 5px;
+      font-size: 13px;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 50;
+    }
+
+    .overlay.show {
+      display: block;
+    }
+
+    .cart-panel {
+      position: fixed;
+      z-index: 60;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(600px, 100%);
+      max-height: 88vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 25px 25px 0 0;
+      padding: 20px;
+      display: none;
+    }
+
+    .cart-panel.show {
+      display: block;
+    }
+
+    .cart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .cart-header h2 {
+      margin: 0;
+    }
+
+    .close-btn {
+      border: none;
+      background: #eee;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
+
+    .cart-info {
+      flex: 1;
+    }
+
+    .cart-name {
+      font-weight: bold;
+    }
+
+    .cart-price {
+      color: #8b6b35;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .quantity {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quantity button {
+      border: none;
+      background: #eee;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .cart-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 18px 0;
+    }
+
+    .table-select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: white;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .send-order {
+      width: 100%;
+      border: none;
+      background: #171717;
+      color: white;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .send-order:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      padding: 30px 10px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px 10px;
+      color: #777;
+    }
+
+    .message {
+      text-align: center;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .message.success {
+      display: block;
+      background: #e7f6e9;
+      color: #26733a;
+    }
+
+    .message.error {
+      display: block;
+      background: #fde8e8;
+      color: #a12828;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>الفاخر</h1>
+  <p>مقهى الفاخر</p>
+</header>
+
+<div class="container">
+
+  <div id="message" class="message"></div>
+
+  <div id="categories" class="categories"></div>
+
+  <div id="loading" class="loading">
+    جاري تحميل القائمة...
+  </div>
+
+  <div id="menu" class="menu-grid"></div>
+
+</div>
+
+<button class="cart-button" onclick="openCart()">
+  🛒 السلة
+  <span id="cartCount" class="cart-count">0</span>
+</button>
+
+<div id="overlay" class="overlay" onclick="closeCart()"></div>
+
+<div id="cartPanel" class="cart-panel">
+
+  <div class="cart-header">
+    <h2>طلبك</h2>
+    <button class="close-btn" onclick="closeCart()">×</button>
+  </div>
+
+  <div id="cartItems"></div>
+
+  <div class="cart-total">
+    <span>المجموع</span>
+    <span id="cartTotal">0 دينار</span>
+  </div>
+
+  <select id="tableNumber" class="table-select">
+    <option value="">اختر رقم الطاولة</option>
+  </select>
+
+  <button id="sendOrderBtn" class="send-order" onclick="sendOrder()">
+    إرسال الطلب
+  </button>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://bsnoaqszlwbgshoitusj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_8mTKULa4xARVJrVFVQF1mA_NRsmpOJB";
+  const CAFE_ID = "4c412000-c442-438f-b4fc-248fe5bdae23";
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  let categories = [];
+  let menuItems = [];
+  let cart = [];
+  let selectedCategory = "all";
+
+  function money(value) {
+    return Number(value || 0).toLocaleString("ar-IQ") + " دينار";
+  }
+
+  async function loadMenu() {
+    try {
+      const { data: cats, error: catError } = await supabaseClient
+        .from("categories")
+        .select("*")
+        .eq("cafe_id", CAFE_ID)
+        .order("sort_order", { ascending: true });
+
+      if (catError) throw catError;
+
+      const { data: items, error: itemError } = await supabaseClient
+        .from("menu_items")
+        .select("*")
+        .eq("cafe_id", CAFE_ID)
+        .eq("is_available", true)
+        .order("sort_order", { ascending: true });
+
+      if (itemError) throw itemError;
+
+      categories = cats || [];
+      menuItems = items || [];
+
+      renderCategories();
+      renderMenu();
+
+      document.getElementById("loading").style.display = "none";
+
+    } catch (error) {
+      console.error(error);
+
+      document.getElementById("loading").innerHTML =
+        "تعذر تحميل القائمة. حاول تحديث الصفحة.";
+    }
+  }
+
+  function renderCategories() {
+    const box = document.getElementById("categories");
+
+    box.innerHTML = `
+      <button class="category-btn ${selectedCategory === "all" ? "active" : ""}"
+        onclick="selectCategory('all')">
+        الكل
+      </button>
+    `;
+
+    categories.forEach(category => {
+      box.innerHTML += `
+        <button class="category-btn ${selectedCategory === category.id ? "active" : ""}"
+          onclick="selectCategory('${category.id}')">
+          ${escapeHtml(category.name)}
+        </button>
+      `;
+    });
+  }
+
+  function selectCategory(categoryId) {
+    selectedCategory = categoryId;
+    renderCategories();
+    renderMenu();
+  }
+
+  function renderMenu() {
+    const box = document.getElementById("menu");
+
+    let items = menuItems;
+
+    if (selectedCategory !== "all") {
+      items = menuItems.filter(
+        item => item.category_id === selectedCategory
+      );
+    }
+
+    if (!items.length) {
+      box.innerHTML = `<div class="empty">لا توجد أصناف حالياً.</div>`;
+      return;
+    }
+
+    box.innerHTML = items.map(item => {
+
+      const image = item.image_url
+        ? `<img class="item-image" src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.name)}">`
+        : `<div class="no-image">☕</div>`;
+
+      return `
+        <div class="item">
+          ${image}
+
+          <div class="item-body">
+            <div class="item-name">
+              ${escapeHtml(item.name)}
+            </div>
+
+            <div class="item-description">
+              ${escapeHtml(item.description || "")}
+            </div>
+
+            <div class="item-bottom">
+              <div class="price">
+                ${money(item.price)}
+              </div>
+
+              <button class="add-btn"
+                onclick="addToCart('${item.id}')">
+                إضافة للسلة
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function addToCart(itemId) {
+    const item = menuItems.find(x => x.id === itemId);
+
+    if (!item) return;
+
+    const existing = cart.find(x => x.id === itemId);
+
+    if (existing) {
+      existing.quantity++;
+    } else {
+      cart.push({
+        id: item.id,
+        name: item.name,
+        price: Number(item.price),
+        quantity: 1
+      });
+    }
+
+    updateCart();
+    showMessage("تمت إضافة الصنف إلى السلة", "success");
+  }
+
+  function increaseQuantity(itemId) {
+    const item = cart.find(x => x.id === itemId);
+
+    if (item) {
+      item.quantity++;
+      updateCart();
+    }
+  }
+
+  function decreaseQuantity(itemId) {
+    const item = cart.find(x => x.id === itemId);
+
+    if (!item) return;
+
+    item.quantity--;
+
+    if (item.quantity <= 0) {
+      cart = cart.filter(x => x.id !== itemId);
+    }
+
+    updateCart();
+  }
+
+  function updateCart() {
+    const box = document.getElementById("cartItems");
+
+    const count = cart.reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
+
+    document.getElementById("cartCount").textContent = count;
+
+    if (!cart.length) {
+      box.innerHTML = `<div class="empty">السلة فارغة</div>`;
+      document.getElementById("cartTotal").textContent = "0 دينار";
+      return;
+    }
+
+    box.innerHTML = cart.map(item => `
+      <div class="cart-item">
+
+        <div class="cart-info">
+          <div class="cart-name">
+            ${escapeHtml(item.name)}
+          </div>
+
+          <div class="cart-price">
+            ${money(item.price)} للقطعة
+          </div>
+        </div>
+
+        <div class="quantity">
+          <button onclick="decreaseQuantity('${item.id}')">−</button>
+          <strong>${item.quantity}</strong>
+          <button onclick="increaseQuantity('${item.id}')">+</button>
+        </div>
+
+      </div>
+    `).join("");
+
+    const total = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    document.getElementById("cartTotal").textContent = money(total);
+  }
+
+  function openCart() {
+    document.getElementById("overlay").classList.add("show");
+    document.getElementById("cartPanel").classList.add("show");
+    updateCart();
+  }
+
+  function closeCart() {
+    document.getElementById("overlay").classList.remove("show");
+    document.getElementById("cartPanel").classList.remove("show");
+  }
+
+  function setupTables() {
+    const select = document.getElementById("tableNumber");
+
+    for (let i = 1; i <= 40; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = "طاولة " + i;
+      select.appendChild(option);
+    }
+  }
+
+  async function sendOrder() {
+    if (!cart.length) {
+      showMessage("السلة فارغة", "error");
+      return;
+    }
+
+    const tableNumber =
+      document.getElementById("tableNumber").value;
+
+    if (!tableNumber) {
+      showMessage("اختار رقم الطاولة أولاً", "error");
+      return;
+    }
+
+    const total = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const button = document.getElementById("sendOrderBtn");
+
+    button.disabled = true;
+    button.textContent = "جاري إرسال الطلب...";
+
+    try {
+
+      const { data: order, error: orderError } =
+        await supabaseClient
+          .from("orders")
+          .insert({
+            cafe_id: CAFE_ID,
+            table_number: Number(tableNumber),
+            status: "new",
+            total: total
+          })
+          .select("id")
+          .single();
+
+      if (orderError) throw orderError;
+
+      const orderItems = cart.map(item => ({
+        order_id: order.id,
+        menu_item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      }));
+
+      const { error: itemsError } =
+        await supabaseClient
+          .from("order_items")
+          .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      cart = [];
+      updateCart();
+
+      document.getElementById("tableNumber").value = "";
+
+      showMessage(
+        "تم إرسال طلبك بنجاح ✅",
+        "success"
+      );
+
+      setTimeout(() => {
+        closeCart();
+      }, 1800);
+
+    } catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        "حدث خطأ أثناء إرسال الطلب. حاول مرة ثانية.",
+        "error"
+      );
+
+    } finally {
+      button.disabled = false;
+      button.textContent = "إرسال الطلب";
+    }
+  }
+
+  function showMessage(text, type) {
+    const box = document.getElementById("message");
+
+    box.textContent = text;
+    box.className = "message " + type;
+
+    setTimeout(() => {
+      box.className = "message";
+    }, 2500);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+
+  setupTables();
+  loadMenu();
+</script>
+
+</body>
+</html>
