@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>إدارة الفاخر</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Tahoma, sans-serif;
+      background: #0b0906;
+      color: white;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1100px, 94%);
+      margin: auto;
+    }
+
+    header {
+      padding: 25px 0;
+      border-bottom: 1px solid #332817;
+      margin-bottom: 25px;
+    }
+
+    header h1 {
+      color: #e4b955;
+      font-size: 28px;
+    }
+
+    header p {
+      color: #999;
+      margin-top: 6px;
+    }
+
+    .login {
+      max-width: 420px;
+      margin: 80px auto;
+      background: #17130d;
+      border: 1px solid #3c2d18;
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .login h2 {
+      color: #e4b955;
+      margin-bottom: 25px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 13px;
+      margin-top: 8px;
+      margin-bottom: 14px;
+      border-radius: 10px;
+      border: 1px solid #49391f;
+      background: #0e0c09;
+      color: white;
+      outline: none;
+      font-size: 15px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #d6a84f;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 14px;
+    }
+
+    .gold {
+      width: 100%;
+      background: #d6a84f;
+      color: #111;
+      font-weight: bold;
+    }
+
+    .gold:hover {
+      background: #edc86e;
+    }
+
+    .logout {
+      background: #321818;
+      color: #ffaaaa;
+    }
+
+    .dashboard {
+      display: none;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .section {
+      background: #14110c;
+      border: 1px solid #332817;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      color: #e4b955;
+      margin-bottom: 18px;
+      font-size: 21px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .form-full {
+      grid-column: 1 / -1;
+    }
+
+    .item {
+      background: #0e0c09;
+      border: 1px solid #332817;
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .item-name {
+      color: #f1dfb9;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .item-price {
+      color: #e4b955;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .item-info {
+      color: #888;
+      margin-top: 7px;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 13px;
+    }
+
+    .edit {
+      background: #263348;
+      color: #bcd7ff;
+    }
+
+    .delete {
+      background: #391818;
+      color: #ffaaaa;
+    }
+
+    .toggle {
+      background: #19351f;
+      color: #a8e9b4;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      display: none;
+      text-align: center;
+    }
+
+    .success {
+      display: block;
+      background: #15351e;
+      color: #9ce5aa;
+    }
+
+    .error {
+      display: block;
+      background: #381818;
+      color: #ffaaaa;
+    }
+
+    .empty {
+      color: #888;
+      text-align: center;
+      padding: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-full {
+        grid-column: auto;
+      }
+
+      .top-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .logout {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- تسجيل الدخول -->
+
+  <div id="loginBox" class="login">
+
+    <h2>إدارة مقهى الفاخر</h2>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="البريد الإلكتروني"
+      autocomplete="email"
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="كلمة المرور"
+      autocomplete="current-password"
+    >
+
+    <button class="gold" onclick="login()">
+      دخول الإدارة
+    </button>
+
+    <div id="loginMessage" class="message"></div>
+
+  </div>
+
+
+  <!-- لوحة الإدارة -->
+
+  <div id="dashboard" class="dashboard">
+
+    <div class="container">
+
+      <header>
+
+        <div class="top-actions">
+
+          <div>
+            <h1>لوحة إدارة الفاخر</h1>
+            <p>إدارة القائمة والأصناف</p>
+          </div>
+
+          <button class="logout" onclick="logout()">
+            تسجيل الخروج
+          </button>
+
+        </div>
+
+      </header>
+
+
+      <!-- إضافة / تعديل صنف -->
+
+      <div class="section">
+
+        <h2 id="formTitle">
+          إضافة صنف جديد
+        </h2>
+
+        <div id="itemMessage" class="message"></div>
+
+        <div class="form-grid">
+
+          <div>
+            <label>اسم الصنف</label>
+
+            <input
+              id="itemName"
+              type="text"
+              placeholder="مثلاً: قهوة حلوة"
+            >
+          </div>
+
+
+          <div>
+            <label>السعر</label>
+
+            <input
+              id="itemPrice"
+              type="number"
+              placeholder="مثلاً: 500"
+            >
+          </div>
+
+
+          <div>
+            <label>القسم</label>
+
+            <select id="itemCategory">
+              <option value="">
+                اختر القسم
+              </option>
+            </select>
+          </div>
+
+
+          <div>
+            <label>ترتيب الصنف</label>
+
+            <input
+              id="itemOrder"
+              type="number"
+              value="1"
+            >
+          </div>
+
+
+          <div class="form-full">
+
+            <label>وصف الصنف</label>
+
+            <textarea
+              id="itemDescription"
+              rows="3"
+              placeholder="وصف اختياري"
+            ></textarea>
+
+          </div>
+
+
+          <div class="form-full">
+
+            <label>رابط صورة الصنف</label>
+
+            <input
+              id="itemImage"
+              type="url"
+              placeholder="https://..."
+            >
+
+          </div>
+
+        </div>
+
+
+        <button
+          id="saveButton"
+          class="gold"
+          onclick="saveItem()"
+        >
+          إضافة الصنف
+        </button>
+
+        <button
+          id="cancelButton"
+          style="display:none; width:100%; margin-top:8px; background:#29241b; color:#ddd;"
+          onclick="cancelEdit()"
+        >
+          إلغاء التعديل
+        </button>
+
+      </div>
+
+
+      <!-- قائمة الأصناف -->
+
+      <div class="section">
+
+        <h2>
+          الأصناف
+        </h2>
+
+        <div id="itemsList">
+
+          <div class="empty">
+            جاري تحميل الأصناف...
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- الطلبات -->
+
+      <div class="section">
+
+        <h2>
+          الطلبات
+        </h2>
+
+        <div class="empty">
+          نظام الطلبات سيتم تفعيله بالخطوة التالية.
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <script>
+
+    // ==========================
+    // إعداد Supabase
+    // ==========================
+
+    const SUPABASE_URL =
+      "https://bsnoaqszlwbgshoitusj.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_8mTKULa4xARVJrVFVQF1mA_NRsmpOJB";
+
+    const CAFE_ID =
+      "4c412000-c442-438f-b4fc-248fe5bdae23";
+
+
+    const supabaseClient =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+
+    let editingId = null;
+
+    let allCategories = [];
+    let allItems = [];
+
+
+    // ==========================
+    // تسجيل الدخول
+    // ==========================
+
+    async function login() {
+
+      const email =
+        document.getElementById("email").value.trim();
+
+      const password =
+        document.getElementById("password").value;
+
+
+      if (!email || !password) {
+
+        showMessage(
+          "loginMessage",
+          "اكتب البريد الإلكتروني وكلمة المرور",
+          "error"
+        );
+
+        return;
+      }
+
+
+      const {
+        data,
+        error
+      } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+
+      if (error) {
+
+        showMessage(
+          "loginMessage",
+          "بيانات الدخول غير صحيحة",
+          "error"
+        );
+
+        console.error(error);
+
+        return;
+      }
+
+
+      document.getElementById("loginBox").style.display =
+        "none";
+
+      document.getElementById("dashboard").style.display =
+        "block";
+
+
+      await loadData();
+
+    }
+
+
+    // ==========================
+    // تسجيل الخروج
+    // ==========================
+
+    async function logout() {
+
+      await supabaseClient.auth.signOut();
+
+      location.reload();
+
+    }
+
+
+    // ==========================
+    // تحميل البيانات
+    // ==========================
+
+    async function loadData() {
+
+      await loadCategories();
+
+      await loadItems();
+
+    }
+
+
+    // ==========================
+    // تحميل الأقسام
+    // ==========================
+
+    async function loadCategories() {
+
+      const {
+        data,
+        error
+      } = await supabaseClient
+        .from("categories")
+        .select("id,name,sort_order")
+        .eq("cafe_id", CAFE_ID)
+        .order("sort_order", {
+          ascending: true
+        });
+
+
+      if (error) {
+
+        console.error(error);
+
+        return;
+      }
+
+
+      allCategories = data || [];
+
+
+      const select =
+        document.getElementById("itemCategory");
+
+
+      select.innerHTML =
+        '<option value="">اختر القسم</option>';
+
+
+      allCategories.forEach(category => {
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          category.id;
+
+        option.textContent =
+          category.name;
+
+        select.appendChild(option);
+
+      });
+
+    }
+
+
+    // ==========================
+    // تحميل الأصناف
+    // ==========================
+
+    async function loadItems() {
+
+      const {
+        data,
+        error
+      } = await supabaseClient
+        .from("menu_items")
+        .select(`
+          id,
+          cafe_id,
+          name,
+          price,
+          is_available,
+          sort_order,
+          category_id,
+          description,
+          image_url
+        `)
+        .eq("cafe_id", CAFE_ID)
+        .order("sort_order", {
+          ascending: true
+        });
+
+
+      if (error) {
+
+        console.error(error);
+
+        document.getElementById("itemsList").innerHTML = `
+          <div class="empty">
+            تعذر تحميل الأصناف.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      allItems = data || [];
+
+      renderItems();
+
+    }
+
+
+    // ==========================
+    // عرض الأصناف
+    // ==========================
+
+    function renderItems() {
+
+      const box =
+        document.getElementById("itemsList");
+
+
+      if (!allItems.length) {
+
+        box.innerHTML = `
+          <div class="empty">
+            لا توجد أصناف حالياً.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      box.innerHTML = "";
+
+
+      allItems.forEach(item => {
+
+        const category =
+          allCategories.find(
+            c => c.id === item.category_id
+          );
+
+
+        const div =
+          document.createElement("div");
+
+        div.className = "item";
+
+
+        div.innerHTML = `
+
+          <div class="item-top">
+
+            <div class="item-name">
+              ${escapeHTML(item.name)}
+            </div>
+
+            <div class="item-price">
+              ${Number(item.price || 0).toLocaleString("ar-IQ")}
+              دينار
+            </div>
+
+          </div>
+
+          <div class="item-info">
+
+            القسم:
+            ${category
+              ? escapeHTML(category.name)
+              : "غير محدد"}
+
+            <br>
+
+            الحالة:
+            ${item.is_available
+              ? "متاح للزبائن 🟢"
+              : "مخفي عن الزبائن 🔴"}
+
+          </div>
+
+          <div class="actions">
+
+            <button
+              class="edit"
+              onclick="editItem('${item.id}')"
+            >
+              تعديل
+            </button>
+
+            <button
+              class="toggle"
+              onclick="toggleItem('${item.id}', ${!item.is_available})"
+            >
+              ${item.is_available
+                ? "إخفاء"
+                : "إظهار"}
+            </button>
+
+            <button
+              class="delete"
+              onclick="deleteItem('${item.id}')"
+            >
+              حذف
+            </button>
+
+          </div>
+
+        `;
+
+
+        box.appendChild(div);
+
+      });
+
+    }
+
+
+    // ==========================
+    // إضافة / تعديل صنف
+    // ==========================
+
+    async function saveItem() {
+
+      const name =
+        document.getElementById("itemName").value.trim();
+
+      const price =
+        document.getElementById("itemPrice").value;
+
+      const categoryId =
+        document.getElementById("itemCategory").value;
+
+      const sortOrder =
+        document.getElementById("itemOrder").value || 1;
+
+      const description =
+        document.getElementById("itemDescription").value.trim();
+
+      const imageUrl =
+        document.getElementById("itemImage").value.trim();
+
+
+      if (!name || !price || !categoryId) {
+
+        showMessage(
+          "itemMessage",
+          "املأ اسم الصنف والسعر والقسم",
+          "error"
+        );
+
+        return;
+      }
+
+
+      const itemData = {
+
+        cafe_id: CAFE_ID,
+
+        name: name,
+
+        price: Number(price),
+
+        category_id: categoryId,
+
+        sort_order: Number(sortOrder),
+
+        description:
+          description || null,
+
+        image_url:
+          imageUrl || null
+
+      };
+
+
+      let result;
+
+
+      if (editingId) {
+
+        result =
+          await supabaseClient
+            .from("menu_items")
+            .update(itemData)
+            .eq("id", editingId)
+            .eq("cafe_id", CAFE_ID);
+
+      } else {
+
+        itemData.is_available = true;
+
+        result =
+          await supabaseClient
+            .from("menu_items")
+            .insert(itemData);
+
+      }
+
+
+      if (result.error) {
+
+        console.error(result.error);
+
+        showMessage(
+          "itemMessage",
+          "حدث خطأ أثناء حفظ الصنف",
+          "error"
+        );
+
+        return;
+      }
+
+
+      showMessage(
+        "itemMessage",
+        editingId
+          ? "تم تعديل الصنف بنجاح"
+          : "تمت إضافة الصنف بنجاح",
+        "success"
+      );
+
+
+      cancelEdit();
+
+      await loadItems();
+
+    }
+
+
+    // ==========================
+    // تعديل صنف
+    // ==========================
+
+    function editItem(id) {
+
+      const item =
+        allItems.find(
+          i => i.id === id
+        );
+
+
+      if (!item) return;
+
+
+      editingId = id;
+
+
+      document.getElementById("itemName").value =
+        item.name || "";
+
+      document.getElementById("itemPrice").value =
+        item.price || "";
+
+      document.getElementById("itemCategory").value =
+        item.category_id || "";
+
+      document.getElementById("itemOrder").value =
+        item.sort_order || 1;
+
+      document.getElementById("itemDescription").value =
+        item.description || "";
+
+      document.getElementById("itemImage").value =
+        item.image_url || "";
+
+
+      document.getElementById("formTitle").textContent =
+        "تعديل الصنف";
+
+      document.getElementById("saveButton").textContent =
+        "حفظ التعديل";
+
+      document.getElementById("cancelButton").style.display =
+        "block";
+
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
+    }
+
+
+    // ==========================
+    // إلغاء التعديل
+    // ==========================
+
+    function cancelEdit() {
+
+      editingId = null;
+
+
+      document.getElementById("itemName").value =
+        "";
+
+      document.getElementById("itemPrice").value =
+        "";
+
+      document.getElementById("itemCategory").value =
+        "";
+
+      document.getElementById("itemOrder").value =
+        "1";
+
+      document.getElementById("itemDescription").value =
+        "";
+
+      document.getElementById("itemImage").value =
+        "";
+
+
+      document.getElementById("formTitle").textContent =
+        "إضافة صنف جديد";
+
+      document.getElementById("saveButton").textContent =
+        "إضافة الصنف";
+
+      document.getElementById("cancelButton").style.display =
+        "none";
+
+    }
+
+
+    // ==========================
+    // إخفاء / إظهار
+    // ==========================
+
+    async function toggleItem(id, newStatus) {
+
+      const {
+        error
+      } = await supabaseClient
+        .from("menu_items")
+        .update({
+          is_available: newStatus
+        })
+        .eq("id", id)
+        .eq("cafe_id", CAFE_ID);
+
+
+      if (error) {
+
+        console.error(error);
+
+        alert("تعذر تغيير حالة الصنف");
+
+        return;
+      }
+
+
+      await loadItems();
+
+    }
+
+
+    // ==========================
+    // حذف صنف
+    // ==========================
+
+    async function deleteItem(id) {
+
+      const confirmed =
+        confirm(
+          "هل أنت متأكد من حذف هذا الصنف؟"
+        );
+
+
+      if (!confirmed) return;
+
+
+      const {
+        error
+      } = await supabaseClient
+        .from("menu_items")
+        .delete()
+        .eq("id", id)
+        .eq("cafe_id", CAFE_ID);
+
+
+      if (error) {
+
+        console.error(error);
+
+        alert("تعذر حذف الصنف");
+
+        return;
+      }
+
+
+      await loadItems();
+
+    }
+
+
+    // ==========================
+    // رسائل
+    // ==========================
+
+    function showMessage(
+      id,
+      text,
+      type
+    ) {
+
+      const box =
+        document.getElementById(id);
+
+
+      box.textContent =
+        text;
+
+      box.className =
+        "message " + type;
+
+
+      setTimeout(() => {
+
+        box.className =
+          "message";
+
+      }, 4000);
+
+    }
+
+
+    // ==========================
+    // حماية النص
+    // ==========================
+
+    function escapeHTML(value) {
+
+      if (
+        value === null ||
+        value === undefined
+      ) {
+
+        return "";
+
+      }
+
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+  </script>
+
+</body>
+</html>
