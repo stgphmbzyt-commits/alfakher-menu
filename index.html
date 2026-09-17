@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>الفاخر | قائمة الطعام</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at top, #30220f 0%, #120e08 38%, #070707 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1100px, 92%);
+      margin: auto;
+    }
+
+    header {
+      padding: 45px 0 25px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 90px;
+      height: 90px;
+      margin: auto;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #d6a84f;
+      background: linear-gradient(145deg, #2b1d0b, #0d0b08);
+      box-shadow: 0 0 35px rgba(214,168,79,.18);
+      font-size: 38px;
+    }
+
+    h1 {
+      margin-top: 18px;
+      color: #e7bd64;
+      font-size: 38px;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #bcbcbc;
+      font-size: 15px;
+    }
+
+    .gold-line {
+      width: 90px;
+      height: 2px;
+      margin: 18px auto;
+      background: #d6a84f;
+    }
+
+    .categories {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 15px 0 22px;
+      scrollbar-width: none;
+      justify-content: center;
+    }
+
+    .categories::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-btn {
+      flex-shrink: 0;
+      border: 1px solid #5d4724;
+      background: rgba(20,16,10,.9);
+      color: #d7d7d7;
+      padding: 11px 19px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: .25s;
+    }
+
+    .category-btn:hover,
+    .category-btn.active {
+      background: #d6a84f;
+      color: #111;
+      border-color: #d6a84f;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      padding: 10px 0 50px;
+    }
+
+    .item {
+      background:
+        linear-gradient(145deg, rgba(38,30,18,.96), rgba(15,13,10,.96));
+      border: 1px solid #3b2d18;
+      border-radius: 20px;
+      overflow: hidden;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      transition: transform .2s, border-color .2s;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .item:hover {
+      transform: translateY(-3px);
+      border-color: #80612d;
+    }
+
+    .item-image {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      display: block;
+      background: #17130d;
+    }
+
+    .item-content {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      align-items: flex-start;
+    }
+
+    .item-name {
+      font-size: 20px;
+      font-weight: bold;
+      color: #f4e2bd;
+    }
+
+    .price {
+      white-space: nowrap;
+      color: #e4b955;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .description {
+      color: #a9a9a9;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-top: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 50px 15px;
+      color: #999;
+      grid-column: 1 / -1;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 15px;
+      color: #d6a84f;
+      grid-column: 1 / -1;
+    }
+
+    .error {
+      background: rgba(130,30,30,.18);
+      border: 1px solid rgba(210,70,70,.35);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      color: #ffb1b1;
+      grid-column: 1 / -1;
+      line-height: 1.8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px 15px 35px;
+      border-top: 1px solid #241d12;
+      color: #777;
+      font-size: 13px;
+    }
+
+    footer span {
+      color: #d6a84f;
+    }
+
+    @media (max-width: 700px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .categories {
+        justify-content: flex-start;
+      }
+
+      .item-image {
+        height: 200px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="container">
+
+      <div class="logo">☕</div>
+
+      <h1>الفاخر</h1>
+
+      <div class="gold-line"></div>
+
+      <div class="subtitle">
+        مقهى الفاخر
+      </div>
+
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div id="categories" class="categories"></div>
+
+    <div id="menu" class="menu-grid">
+      <div class="loading">
+        جاري تحميل القائمة...
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    جميع الحقوق محفوظة © الفاخر
+    <br>
+    تصميم وبرمجة <span>ابن مكحول</span>
+  </footer>
+
+  <script>
+
+    const SUPABASE_URL =
+      "https://bsnoaqszlwbgshoitusj.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_8mTKULa4xARVJrVFVQF1mA_NRsmpOJB";
+
+    const CAFE_ID =
+      "4c412000-c442-438f-b4fc-248fe5bdae23";
+
+    const supabaseClient =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+    const categoriesBox =
+      document.getElementById("categories");
+
+    const menuBox =
+      document.getElementById("menu");
+
+    let categoriesData = [];
+    let menuItemsData = [];
+
+    async function loadMenu() {
+
+      menuBox.innerHTML = `
+        <div class="loading">
+          جاري تحميل القائمة...
+        </div>
+      `;
+
+      try {
+
+        const {
+          data: categories,
+          error: categoriesError
+        } = await supabaseClient
+          .from("categories")
+          .select("id,name,sort_order")
+          .eq("cafe_id", CAFE_ID)
+          .order("sort_order", {
+            ascending: true
+          });
+
+        if (categoriesError) {
+          throw new Error(
+            "خطأ في تحميل التصنيفات: " +
+            categoriesError.message
+          );
+        }
+
+        const {
+          data: items,
+          error: itemsError
+        } = await supabaseClient
+          .from("menu_items")
+          .select(`
+            id,
+            cafe_id,
+            name,
+            price,
+            is_available,
+            sort_order,
+            category_id,
+            description,
+            image_url
+          `)
+          .eq("cafe_id", CAFE_ID)
+          .eq("is_available", true)
+          .order("sort_order", {
+            ascending: true
+          });
+
+        if (itemsError) {
+          throw new Error(
+            "خطأ في تحميل عناصر القائمة: " +
+            itemsError.message
+          );
+        }
+
+        categoriesData = categories || [];
+        menuItemsData = items || [];
+
+        renderCategories();
+        renderItems("all");
+
+      } catch (error) {
+
+        console.error(error);
+
+        menuBox.innerHTML = `
+          <div class="error">
+            حدث خطأ أثناء تحميل القائمة.
+            <br>
+            حاول تحديث الصفحة مرة أخرى.
+          </div>
+        `;
+      }
+    }
+
+    function renderCategories() {
+
+      categoriesBox.innerHTML = "";
+
+      const allButton =
+        document.createElement("button");
+
+      allButton.className =
+        "category-btn active";
+
+      allButton.textContent =
+        "الكل";
+
+      allButton.onclick = function() {
+
+        setActiveButton(this);
+        renderItems("all");
+
+      };
+
+      categoriesBox.appendChild(allButton);
+
+      categoriesData.forEach(category => {
+
+        const button =
+          document.createElement("button");
+
+        button.className =
+          "category-btn";
+
+        button.textContent =
+          category.name;
+
+        button.onclick = function() {
+
+          setActiveButton(this);
+          renderItems(category.id);
+
+        };
+
+        categoriesBox.appendChild(button);
+
+      });
+    }
+
+    function setActiveButton(button) {
+
+      document
+        .querySelectorAll(".category-btn")
+        .forEach(btn => {
+          btn.classList.remove("active");
+        });
+
+      button.classList.add("active");
+    }
+
+    function renderItems(categoryId) {
+
+      let items = menuItemsData;
+
+      if (categoryId !== "all") {
+
+        items =
+          menuItemsData.filter(item =>
+            item.category_id === categoryId
+          );
+      }
+
+      if (!items.length) {
+
+        menuBox.innerHTML = `
+          <div class="empty">
+            لا توجد أصناف متاحة حالياً.
+          </div>
+        `;
+
+        return;
+      }
+
+      menuBox.innerHTML = "";
+
+      items.forEach(item => {
+
+        const card =
+          document.createElement("div");
+
+        card.className = "item";
+
+        let imageHTML = "";
+
+        if (item.image_url) {
+
+          imageHTML = `
+            <img
+              class="item-image"
+              src="${escapeHTML(item.image_url)}"
+              alt="${escapeHTML(item.name)}"
+              loading="lazy"
+              onerror="this.style.display='none'"
+            >
+          `;
+
+        }
+
+        const description =
+          item.description
+            ? escapeHTML(item.description)
+            : "استمتع بمذاق مميز من الفاخر";
+
+        const price =
+          item.price != null
+            ? Number(item.price).toLocaleString("ar-IQ") +
+              " دينار"
+            : "حسب الطلب";
+
+        card.innerHTML = `
+
+          ${imageHTML}
+
+          <div class="item-content">
+
+            <div class="item-top">
+
+              <div class="item-name">
+                ${escapeHTML(item.name)}
+              </div>
+
+              <div class="price">
+                ${price}
+              </div>
+
+            </div>
+
+            <div class="description">
+              ${description}
+            </div>
+
+          </div>
+
+        `;
+
+        menuBox.appendChild(card);
+
+      });
+
+    }
+
+    function escapeHTML(value) {
+
+      if (value === null || value === undefined) {
+        return "";
+      }
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    loadMenu();
+
+  </script>
+
+</body>
+</html>
